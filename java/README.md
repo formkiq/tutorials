@@ -2,9 +2,13 @@
 =====================================
 This is the official tutorials for the FormKiQ API. 
 
-All tutorials are separated by programming language used.
+Requires Java 11 or greater.
 
-Please visit https://blog.formkiq.com for Blog postings describing these code examples in more detail.
+Please visit http://www.formkiq.com  directly with any issues that need attention.
+
+Blogs
+------------------
+Blog postings for these examples can be found at: https://blog.formkiq.com.
 
 Licensing
 =========

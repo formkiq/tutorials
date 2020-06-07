@@ -57,7 +57,6 @@ public class FileuploadController {
   /** {@link FormKiqClient}. */
   private FormKiqClient client;
 
-  @Autowired
   public FileuploadController() {
     this.client = FormKiqClientBuilder.build(COGNITO_USER, COGNITO_PASSWORD);
   }
@@ -90,6 +89,7 @@ public class FileuploadController {
     GetDocumentContentUrlRequest req = new GetDocumentContentUrlRequest().documentId(documentId);
     DocumentUrl content = this.client.getDocumentContentUrl(req);
 
+    /* Redirect Request to the Content URL (which is an S3 Presigned Url). */
     return ResponseEntity.status(307).header("Location", content.url()).build();
   }
 

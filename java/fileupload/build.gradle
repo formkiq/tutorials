@@ -2,11 +2,16 @@ plugins {
 	id 'org.springframework.boot' version '2.3.0.RELEASE'
 	id 'io.spring.dependency-management' version '1.0.9.RELEASE'
 	id 'java'
+	id 'application'
 }
 
 group = 'com.formkiq.tutorials'
 version = '0.0.1-SNAPSHOT'
 sourceCompatibility = '11'
+
+application {
+    mainClassName = 'com.formkiq.tutorials.fileupload.FileuploadApplication'
+}
 
 repositories {
 	mavenLocal()
@@ -15,9 +20,11 @@ repositories {
 
 dependencies {
 
-	implementation group: 'software.amazon.awssdk', name: 'cognitoidentityprovider', version: '2.13.28'
-	
+	// AWS Cognito Identity Provider
+	implementation 'software.amazon.awssdk:cognitoidentityprovider:2.13.28'
+	// FormKiQ Stacks Client
 	implementation 'com.formkiq.stacks:client:1.1'
+
 	implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	testImplementation('org.springframework.boot:spring-boot-starter-test') {

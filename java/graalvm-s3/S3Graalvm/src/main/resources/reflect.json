@@ -1,0 +1,9 @@
+[
+ {
+    "name": "helloworld.S3Graalvm",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  }
+]

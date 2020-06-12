@@ -1,0 +1,61 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  graalvm-s3
+
+  Sample SAM Template for graalvm-s3
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 20
+
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+
+  S3Java:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: S3Java
+      Handler: helloworld.S3Java::handleRequest
+      Runtime: java11
+      MemorySize: 512
+      Policies:
+      - Statement:
+        - Sid: S3Access
+          Effect: Allow
+          Action:
+          - s3:GetObject
+          - s3:PutObject
+          Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
+      Environment:
+        Variables:
+          S3Bucket: !Ref S3Bucket
+
+  S3Graalvm:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: S3Graalvm
+      Handler: helloworld.S3Graalvm::handleRequest
+      Runtime: provided
+      MemorySize: 512
+      Policies:
+      - Statement:
+        - Sid: S3Access
+          Effect: Allow
+          Action:
+          - s3:GetObject
+          - s3:PutObject
+          Resource: !Sub 'arn:aws:s3:::${S3Bucket}/*'
+      Environment:
+        Variables:
+          S3Bucket: !Ref S3Bucket          
+
+Outputs:
+  S3Java:
+    Description: "S3Java Lambda Function ARN"
+    Value: !GetAtt S3Java.Arn
+  S3Graalvm:
+    Description: "S3Graalvm Lambda Function ARN"
+    Value: !GetAtt S3Graalvm.Arn    

@@ -53,9 +53,12 @@ Resources:
           S3Bucket: !Ref S3Bucket          
 
 Outputs:
+  S3Bucket:
+    Description: "S3Bucket"
+    Value: !GetAtt S3Bucket.Arn   
   S3Java:
     Description: "S3Java Lambda Function ARN"
     Value: !GetAtt S3Java.Arn
   S3Graalvm:
     Description: "S3Graalvm Lambda Function ARN"
-    Value: !GetAtt S3Graalvm.Arn    
+    Value: !GetAtt S3Graalvm.Arn

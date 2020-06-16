@@ -27,7 +27,8 @@ public class S3Java implements RequestHandler<Object, Object> {
           RequestBody.fromString("This is a test"));
     }
 
-    context.getLogger().log(MessageFormat.format("Created S3 File %s in bucket %s", key, bucket));
-    return null;
+    String msg = MessageFormat.format("Created S3 File {0} in bucket {1}", key, bucket);
+    context.getLogger().log(MessageFormat.format("Created S3 File {0} in bucket {1}", key, bucket));
+    return msg;
   }
 }

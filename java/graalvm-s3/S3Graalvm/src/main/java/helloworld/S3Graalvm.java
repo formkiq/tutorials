@@ -2,7 +2,6 @@ package helloworld;
 
 import java.text.MessageFormat;
 import java.util.UUID;
-import java.util.Map;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import software.amazon.awssdk.core.sync.RequestBody;
@@ -13,7 +12,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 /**
  * Handler for requests to Lambda function.
  */
-public class S3Graalvm implements RequestHandler<Map<String, Object>, Void> {
+public class S3Graalvm implements RequestHandler<Object, Object> {
 
   private S3ClientBuilder builder = S3Client.builder();
 
@@ -23,7 +22,7 @@ public class S3Graalvm implements RequestHandler<Map<String, Object>, Void> {
   }
   
   @Override
-  public Void handleRequest(Map<String, Object> input, Context context) {
+  public Object handleRequest(Object input, Context context) {
     String bucket = System.getenv("S3Bucket");
     String key = UUID.randomUUID().toString();
 
@@ -32,7 +31,8 @@ public class S3Graalvm implements RequestHandler<Map<String, Object>, Void> {
           RequestBody.fromString("This is a test"));
     }
 
-    context.getLogger().log(MessageFormat.format("Created S3 File %s in bucket %s", key, bucket));
-    return null;
+    String msg = MessageFormat.format("Created S3 File {0} in bucket {1}", key, bucket);
+    context.getLogger().log(MessageFormat.format("Created S3 File {0} in bucket {1}", key, bucket));
+    return msg;
   }
 }

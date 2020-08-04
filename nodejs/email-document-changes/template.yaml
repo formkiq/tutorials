@@ -1,0 +1,106 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  email-document-changes
+
+  Sample SAM Template for email-document-changes
+  
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 3
+
+Parameters:
+    
+  AppEnvironment:
+    Type: String
+    Description: The Application Environment
+    Default: prod
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: hello-world/
+      Handler: app.lambdaHandler
+      Runtime: nodejs12.x
+      Policies:
+      - Statement:
+        - Sid: SesAccess
+          Effect: Allow
+          Action:
+          - ses:SendEmail
+          Resource: '*'
+      Events:
+        SqsJobQueue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt HellowWorldQueue.Arn
+            BatchSize: 1
+
+  HellowWorldQueue:
+    Type: AWS::SQS::Queue
+
+  HellowWorldQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref HellowWorldQueue
+      PolicyDocument:
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: '*'
+          Action: "sqs:SendMessage"
+          Resource: !GetAtt [HellowWorldQueue, Arn]
+          Condition:
+            ArnEquals:
+              "aws:SourceArn": !Sub "{{resolve:ssm:/formkiq/${AppEnvironment}/sns/SnsDocumentsCreateEventTopicArn:1}}"
+        - Effect: Allow
+          Principal:
+            AWS: '*'
+          Action: "sqs:SendMessage"
+          Resource: !GetAtt [HellowWorldQueue, Arn]
+          Condition:
+            ArnEquals:
+              "aws:SourceArn": !Sub "{{resolve:ssm:/formkiq/${AppEnvironment}/sns/SnsDocumentsDeleteEventTopicArn:1}}"
+        - Effect: Allow
+          Principal:
+            AWS: '*'
+          Action: "sqs:SendMessage"
+          Resource: !GetAtt [HellowWorldQueue, Arn]
+          Condition:
+            ArnEquals:
+              "aws:SourceArn": !Sub "{{resolve:ssm:/formkiq/${AppEnvironment}/sns/SnsDocumentsUpdateEventTopicArn:1}}"
+
+  HellowWorldQueueToCreateSnsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt HellowWorldQueue.Arn
+      Protocol: sqs
+      RawMessageDelivery: true
+      TopicArn: !Sub "{{resolve:ssm:/formkiq/${AppEnvironment}/sns/SnsDocumentsCreateEventTopicArn:1}}"
+
+  HellowWorldQueueToDeleteSnsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt HellowWorldQueue.Arn
+      Protocol: sqs
+      RawMessageDelivery: true
+      TopicArn: !Sub "{{resolve:ssm:/formkiq/${AppEnvironment}/sns/SnsDocumentsDeleteEventTopicArn:1}}"
+
+  HellowWorldQueueToUpdateSnsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt HellowWorldQueue.Arn
+      Protocol: sqs
+      RawMessageDelivery: true
+      TopicArn: !Sub "{{resolve:ssm:/formkiq/${AppEnvironment}/sns/SnsDocumentsUpdateEventTopicArn:1}}"
+
+Outputs:
+  HelloWorldFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt HelloWorldFunctionRole.Arn

@@ -32,7 +32,7 @@ var ses = new aws.SES();
  */
 exports.lambdaHandler = async (event, context) => {
 
-    var toEmail = "mfriesen@gmail.com";
+    var toEmail = "<email>";
     var fromEmail = toEmail;
     var body = "";
     

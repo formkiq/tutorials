@@ -9,8 +9,12 @@ const multer = require('multer');
 const path = require('path');
 const axios = require('axios');
 
-const apiKey = "<API KEY>";
-const keyApiUrl = "<KEY API URL";
+//const apiKey = "<API_KEY>";
+//const keyApiUrl = "<KEY_API_URL>";
+
+
+const apiKey = "WyGERUCU8G8jaL1hI2jGaOvJ02BowtKmFs916zuMGGSoBTAsEqJ";
+const keyApiUrl = "https://gf7ty26nel.execute-api.ca-central-1.amazonaws.com";
 
 // Set up Multer storage for handling file uploads
 const storage = multer.diskStorage({
@@ -28,11 +32,6 @@ const upload = multer({ storage: storage });
 // defining the Express app
 const app = express();
 
-// defining an array to work as the database (temporary solution)
-const ads = [
-  {title: 'Hello, world (again)!'}
-];
-
 // adding Helmet to enhance your API's security
 app.use(helmet());
 
@@ -45,13 +44,25 @@ app.use(cors());
 // adding morgan to log HTTP requests
 app.use(morgan('combined'));
 
-// defining an endpoint to return all ads
+// defining an endpoint to return a "hello, world"
 app.get('/', (req, res) => {
-  res.send(ads);
+  res.send([
+    {title: 'Hello, world!'}
+  ]);
 });
 
-// Set up a route for file uploads
+const axiosConfig = {
+  headers: {
+    'Authorization': `${apiKey}`,
+    'Content-Type': 'application/json',
+  },
+};
+
+// define an endpoint for file uploads
 app.post('/upload', upload.single('document'), (req, res) => {
+
+  // TODO: is this user authorized to upload documents?
+
   // Handle the uploaded file
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded' });
@@ -61,23 +72,20 @@ app.post('/upload', upload.single('document'), (req, res) => {
   const filePath = path.join(__dirname, '../uploads', fileName);
   const fileBuffer = fs.readFileSync(filePath);
 
-  const axiosConfig = {
-    headers: {
-      'Authorization': `${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-  };
-
-  const postData = {
+  const uploadMetadata = {
     tags: [
-    {
-      "key":"approvalRequired",
-      "value":"true"
-    }
+      {
+        "key":"approvalRequired",
+        "value":"true"
+      },
+      {
+        "key":"submittedByUser",
+        "value":"user@mycompany.com"
+      },
     ]
   };
 
-  axios.post(keyApiUrl + "/documents/upload", postData, axiosConfig)
+  axios.post(keyApiUrl + "/documents/upload", uploadMetadata, axiosConfig)
   .then((response) => {
     // Handle the response from the API
     console.log('Response from the API:');
@@ -101,6 +109,31 @@ app.post('/upload', upload.single('document'), (req, res) => {
     });
 
     res.json({ message: 'File uploaded successfully!', documentId: response.data.documentId});
+
+    // delete temporary file from uploads
+    fs.unlinkSync(filePath)
+
+  })
+  .catch((error) => {
+    // Handle any errors that occurred during the request
+    console.error('Error sending POST request:', error.message);
+  });
+});
+
+app.get('/documents', (req, res) => {
+  const searchData = {
+    query:
+    {
+      "tag":{
+        "eq": "true",
+        "key": "approvalRequired"
+      }
+    }
+  };
+  axios.post(keyApiUrl + "/search", searchData, axiosConfig)
+  .then((response) => {
+    // Handle the response from the API
+    res.send(response.data);
   })
   .catch((error) => {
     // Handle any errors that occurred during the request

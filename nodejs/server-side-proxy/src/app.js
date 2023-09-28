@@ -9,12 +9,8 @@ const multer = require('multer');
 const path = require('path');
 const axios = require('axios');
 
-//const apiKey = "<API_KEY>";
-//const keyApiUrl = "<KEY_API_URL>";
-
-
-const apiKey = "WyGERUCU8G8jaL1hI2jGaOvJ02BowtKmFs916zuMGGSoBTAsEqJ";
-const keyApiUrl = "https://gf7ty26nel.execute-api.ca-central-1.amazonaws.com";
+const apiKey = "<API_KEY>";
+const keyApiUrl = "<KEY_API_URL>";
 
 // Set up Multer storage for handling file uploads
 const storage = multer.diskStorage({

@@ -1,0 +1,108 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  document-events
+
+  Sample SAM Template for document-events
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 20
+    MemorySize: 512
+
+Parameters:
+
+  AppEnvironment:
+    Type: String
+    Description: Unique Application Environment Identifier, IE dev/staging/prod
+    AllowedPattern: "[a-zA-Z0-9_.-/]+"
+    Default: prod
+
+Resources:
+
+  ProcessorQueue:
+    Type: "AWS::SQS::Queue"
+    Properties:
+      VisibilityTimeout: 900
+      ReceiveMessageWaitTimeSeconds: 20
+      Tags:
+        - Key: "StackName"
+          Value: 
+            Fn::Sub: "${AWS::StackName}"
+
+  ProcessorQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    DependsOn: 
+    - ProcessorQueue
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Id: QueuePolicy
+        Statement:
+        - Sid: snsSendMessagesToQueue
+          Effect: Allow
+          Principal:
+            Service: sns.amazonaws.com
+          Action: 
+            - sqs:SendMessage
+          Resource: 
+            Fn::GetAtt: 
+            - ProcessorQueue
+            - Arn
+          Condition:
+            StringEquals:
+              aws:SourceAccount: 
+                Ref: AWS::AccountId
+      Queues:
+      - Ref: ProcessorQueue
+
+  SnsDocumentsCreateSubscriptionSqs:
+    Type: AWS::SNS::Subscription
+    DependsOn:
+    - ProcessorQueue
+    Properties:
+      Protocol: sqs
+      Endpoint: 
+        Fn::GetAtt:
+        - ProcessorQueue
+        - Arn
+      TopicArn:
+        Fn::Sub: '{{resolve:ssm:/formkiq/${AppEnvironment}/sns/DocumentEventArn}}'
+      FilterPolicy: '{"type": ["create"]}'
+
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: HelloWorldFunction
+      Handler: helloworld.App::handleRequest
+      Runtime: java17
+      Architectures:
+        - x86_64
+      MemorySize: 512
+      Policies:
+      - AmazonAPIGatewayInvokeFullAccess
+      Environment:
+        Variables:
+          IAM_API_URL:
+            Fn::Sub: '{{resolve:ssm:/formkiq/${AppEnvironment}/api/DocumentsIamUrl}}'
+      Events:
+        CreateSQSEvent:
+          Type: SQS
+          Properties:
+            Queue: 
+              Fn::GetAtt: 
+              - ProcessorQueue
+              - Arn
+            BatchSize: 1
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  HelloWorldFunction:
+    Description: "Hello World Lambda Function ARN"
+    Value: !GetAtt HelloWorldFunction.Arn
+  HelloWorldFunctionIamRole:
+    Description: "Implicit IAM Role created for Hello World function"
+    Value: !GetAtt HelloWorldFunctionRole.Arn

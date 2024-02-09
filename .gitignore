@@ -24,3 +24,7 @@ hs_err_pid*
 
 # SAM CLI Config
 samconfig.toml
+org.eclipse*
+.classpath
+.project
+.DS_Store

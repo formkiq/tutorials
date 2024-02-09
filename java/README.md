@@ -1,5 +1,6 @@
-# FormKiQ Stacks Tutorials
-=====================================
+# FormKiQ Java Tutorials Repository
+===================================== 
+
 This is the official tutorials for the FormKiQ API. 
 
 Requires Java 11 or greater.

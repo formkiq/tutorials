@@ -46,7 +46,7 @@ public class App {
 
 	public static void main(String[] args) throws ApiException, InterruptedException {
 
-		String siteId = UUID.randomUUID().toString();
+		String siteId = null;
 
 		App app = new App();
 		app.setUpApi();

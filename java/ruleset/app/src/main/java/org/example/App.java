@@ -40,40 +40,59 @@ public class App {
 	private static final String QUEUE_A = "queueA";
 	private static final String QUEUE_B = "queueB";
 
+	private DocumentWorkflowsApi workflowsApi;
+	private RulesetsApi rulesetsApi;
+	private DocumentsApi documentsApi;
+
 	public static void main(String[] args) throws ApiException, InterruptedException {
 
 		String siteId = UUID.randomUUID().toString();
 
 		App app = new App();
-		ApiClient client = app.getClient();
+		app.setUpApi();
 
-		DocumentWorkflowsApi api = new DocumentWorkflowsApi(client);
+		String queueAId = app.createQueue(siteId, QUEUE_A);
+		String queueBId = app.createQueue(siteId, QUEUE_B);
 
-		String queueAId = api.addQueue(new AddQueueRequest().name(QUEUE_A), siteId).getQueueId();
-		String queueBId = api.addQueue(new AddQueueRequest().name(QUEUE_B), siteId).getQueueId();
+		String workflowAId = app.createQueueWorkflow(siteId, queueAId, QUEUE_A, "finance");
+		String workflowBId = app.createQueueWorkflow(siteId, queueBId, QUEUE_B, "management");
 
-		String workflowAId = app.createQueueWorkflow(api, siteId, queueAId, QUEUE_A, "finance");
-		String workflowBId = app.createQueueWorkflow(api, siteId, queueBId, QUEUE_B, "management");
+		app.createRuleset(siteId, workflowAId, workflowBId);
 
-		app.createRuleset(client, siteId, workflowAId, workflowBId);
+		app.addDocument(siteId, "test data", "text/plain");
+		app.addDocument(siteId, "{\"content\":\"test data\"}", "application/json");
 
-		app.addDocument(client, siteId, "test data", "text/plain");
-		app.addDocument(client, siteId, "{\"content\":\"test data\"}", "application/json");
-
-		List<WorkflowDocument> documentsInQueueA = app.getDocumentsInQueue(api, siteId, queueAId);
+		List<WorkflowDocument> documentsInQueueA = app.getDocumentsInQueue(siteId, queueAId);
 		System.out.println("# of documents in queue: " + documentsInQueueA.size());
 		System.out.println("content type: " + documentsInQueueA.get(0).getDocument().getContentType());
 
-		List<WorkflowDocument> documentsInQueueB = app.getDocumentsInQueue(api, siteId, queueBId);
+		List<WorkflowDocument> documentsInQueueB = app.getDocumentsInQueue(siteId, queueBId);
 		System.out.println("# of documents in queue: " + documentsInQueueB.size());
 		System.out.println("content type: " + documentsInQueueB.get(0).getDocument().getContentType());
 	}
 
+	private String createQueue(String siteId, String queueName) throws ApiException {
+		return workflowsApi.addQueue(new AddQueueRequest().name(queueName), siteId).getQueueId();
+	}
+
 	/**
-	 * Get Documents in Queue. Could take a few seconds for documents to be processed.
+	 * Setup API classes.
 	 */
-	private List<WorkflowDocument> getDocumentsInQueue(final DocumentWorkflowsApi api, final String siteId,
-			final String queueId) throws ApiException, InterruptedException {
+	public void setUpApi() {
+
+		ApiClient client = (new ApiClient()).setReadTimeout(0).setBasePath(HTTP_API_URL);
+		client.addDefaultHeader("Authorization", ACCESS_TOKEN);
+		workflowsApi = new DocumentWorkflowsApi(client);
+		rulesetsApi = new RulesetsApi(client);
+		documentsApi = new DocumentsApi(client);
+	}
+
+	/**
+	 * Get Documents in Queue. Could take a few seconds for documents to be
+	 * processed.
+	 */
+	private List<WorkflowDocument> getDocumentsInQueue(final String siteId, final String queueId)
+			throws ApiException, InterruptedException {
 
 		final int maxWait = 10;
 		int waitCount = 0;
@@ -81,7 +100,8 @@ public class App {
 
 		do {
 
-			GetWorkflowQueueDocumentsResponse response = api.getWorkflowQueueDocuments(queueId, siteId, null, null);
+			GetWorkflowQueueDocumentsResponse response = workflowsApi.getWorkflowQueueDocuments(queueId, siteId, null,
+					null);
 			documents = response.getDocuments();
 
 			if (documents.isEmpty()) {
@@ -101,18 +121,17 @@ public class App {
 	/**
 	 * Create Document with specific content and content-type.
 	 */
-	private String addDocument(final ApiClient client, final String siteId, final String content,
-			final String contentType) throws ApiException {
-		DocumentsApi api = new DocumentsApi(client);
+	private String addDocument(final String siteId, final String content, final String contentType)
+			throws ApiException {
 		AddDocumentRequest req = new AddDocumentRequest().content(content).contentType(contentType);
-		return api.addDocument(req, siteId, null).getDocumentId();
+		return documentsApi.addDocument(req, siteId, null).getDocumentId();
 	}
 
 	/**
 	 * Create Workflow that places documents into a Queue.
 	 */
-	public String createQueueWorkflow(final DocumentWorkflowsApi api, final String siteId, final String queueId,
-			final String queueName, final String approvalRole) throws ApiException {
+	public String createQueueWorkflow(final String siteId, final String queueId, final String queueName,
+			final String approvalRole) throws ApiException {
 
 		AddWorkflowStep step0 = new AddWorkflowStep().stepId(UUID.randomUUID().toString())
 				.queue(new AddWorkflowStepQueue().queueId(queueId).addApprovalGroupsItem(approvalRole));
@@ -120,7 +139,7 @@ public class App {
 		AddWorkflowRequest req = new AddWorkflowRequest().name("Queue " + queueName).description("Queue " + queueName)
 				.status(WorkflowStatus.ACTIVE).addStepsItem(step0);
 
-		return api.addWorkflow(req, siteId).getWorkflowId();
+		return workflowsApi.addWorkflow(req, siteId).getWorkflowId();
 	}
 
 	/**
@@ -141,15 +160,12 @@ public class App {
 	/**
 	 * Create Ruleset with Content-Type rules.
 	 */
-	public void createRuleset(final ApiClient client, final String siteId, final String workflowAId, String workflowBId)
-			throws ApiException {
+	public void createRuleset(final String siteId, final String workflowAId, String workflowBId) throws ApiException {
 
-		RulesetsApi api = new RulesetsApi(client);
+		String rulesetId = createRuleset(rulesetsApi, siteId);
 
-		String rulesetId = createRuleset(api, siteId);
-
-		createContentTypeRule(api, siteId, rulesetId, workflowAId, "application/json");
-		createContentTypeRule(api, siteId, rulesetId, workflowBId, "text/plain");
+		createContentTypeRule(rulesetsApi, siteId, rulesetId, workflowAId, "application/json");
+		createContentTypeRule(rulesetsApi, siteId, rulesetId, workflowBId, "text/plain");
 	}
 
 	/**
@@ -162,14 +178,5 @@ public class App {
 		AddRulesetResponse addRuleset = api.addRuleset(req, siteId);
 
 		return addRuleset.getRulesetId();
-	}
-
-	/**
-	 * Create ApiClient.
-	 */
-	public ApiClient getClient() {
-		ApiClient client = (new ApiClient()).setReadTimeout(0).setBasePath(HTTP_API_URL);
-		client.addDefaultHeader("Authorization", ACCESS_TOKEN);
-		return client;
 	}
 }

@@ -133,9 +133,11 @@ public class App {
 	public String createQueueWorkflow(final String siteId, final String queueId, final String queueName,
 			final String approvalRole) throws ApiException {
 
+		// Create Workflow Step
 		AddWorkflowStep step0 = new AddWorkflowStep().stepId(UUID.randomUUID().toString())
 				.queue(new AddWorkflowStepQueue().queueId(queueId).addApprovalGroupsItem(approvalRole));
 
+		// Create Add Workflow Request
 		AddWorkflowRequest req = new AddWorkflowRequest().name("Queue " + queueName).description("Queue " + queueName)
 				.status(WorkflowStatus.ACTIVE).addStepsItem(step0);
 
@@ -145,7 +147,7 @@ public class App {
 	/**
 	 * Create Rule based on document Content-Type.
 	 */
-	private void createContentTypeRule(RulesetsApi api, final String siteId, String rulesetId, final String workflowId,
+	private void createContentTypeRule(final String siteId, String rulesetId, final String workflowId,
 			final String contentType) throws ApiException {
 		AddRule addRule = new AddRule().description("Workflow " + workflowId).workflowId(workflowId)
 				.status(RulesetStatus.ACTIVE)
@@ -154,7 +156,7 @@ public class App {
 								.value(contentType).operation(RuleConditionOperation.EQ)));
 		AddRuleRequest req = new AddRuleRequest().rule(addRule);
 
-		api.addRule(rulesetId, req, siteId);
+		rulesetsApi.addRule(rulesetId, req, siteId);
 	}
 
 	/**
@@ -162,20 +164,20 @@ public class App {
 	 */
 	public void createRuleset(final String siteId, final String workflowAId, String workflowBId) throws ApiException {
 
-		String rulesetId = createRuleset(rulesetsApi, siteId);
+		String rulesetId = createRuleset(siteId);
 
-		createContentTypeRule(rulesetsApi, siteId, rulesetId, workflowAId, "application/json");
-		createContentTypeRule(rulesetsApi, siteId, rulesetId, workflowBId, "text/plain");
+		createContentTypeRule(siteId, rulesetId, workflowAId, "application/json");
+		createContentTypeRule(siteId, rulesetId, workflowBId, "text/plain");
 	}
 
 	/**
 	 * Create Ruleset.
 	 */
-	public String createRuleset(final RulesetsApi api, final String siteId) throws ApiException {
+	public String createRuleset(final String siteId) throws ApiException {
 		AddRulesetRequest req = new AddRulesetRequest().ruleset(new AddRuleset().description("Ruleset 1")
 				.priority(new BigDecimal(1)).version(new BigDecimal(1)).status(RulesetStatus.ACTIVE));
 
-		AddRulesetResponse addRuleset = api.addRuleset(req, siteId);
+		AddRulesetResponse addRuleset = rulesetsApi.addRuleset(req, siteId);
 
 		return addRuleset.getRulesetId();
 	}
